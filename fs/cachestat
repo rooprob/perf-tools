@@ -55,7 +55,7 @@
 
 ### default variables
 tracing=/sys/kernel/debug/tracing
-interval=1; opt_timestamp=0; opt_debug=0
+interval=1; duration=10; opt_timestamp=0; opt_debug=0
 trap 'quit=1' INT QUIT TERM PIPE HUP	# sends execution to end tracing section
 
 function usage {
@@ -65,9 +65,11 @@ function usage {
 	                 -h              # this usage message
 	                 -t              # include timestamp
 	                 interval        # output interval in secs (default 1)
+	                 duration        # duration in secs (default 10)
 	  eg,
 	       cachestat                 # show stats every second
 	       cachestat 5               # show stats every 5 seconds
+	       cachestat 5 10            # show stats every 5 seconds
 
 	See the man page and example file for more info.
 END
@@ -100,7 +102,13 @@ shift $(( $OPTIND - 1 ))
 if (( $# )); then
 	interval=$1
 fi
-echo "Counting cache functions... Output every $interval seconds."
+shift $(( $OPTIND ))
+
+### option logic
+if (( $# )); then
+	duration=$1
+fi
+echo "Counting cache functions... Output every $interval seconds, for $duration seconds."
 
 ### check permissions
 cd $tracing || die "ERROR: accessing tracing. Root user? Kernel has FTRACE?
@@ -124,7 +132,7 @@ echo
 
 ### summarize
 quit=0; secs=0
-while (( !quit && (!opt_duration || secs < duration) )); do
+while (( !quit && (secs < duration) )); do
 	(( secs += interval ))
 	echo 0 > function_profile_enabled
 	echo 1 > function_profile_enabled
